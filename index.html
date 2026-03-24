@@ -2,17 +2,17 @@
 <html lang="th">
 <head>
 <meta charset="UTF-8">
-<title>ระบบแข่งขันวิ่ง</title>
+<title>ระบบแข่งขันวิ่ง (Realtime)</title>
 <style>
 body { font-family: Arial; margin: 20px; }
 .group { border: 1px solid #ccc; padding: 10px; margin: 10px 0; }
-button { margin-top: 5px; }
 #winnersDisplay, #allWinnersDisplay { margin: 5px 0 15px 0; font-weight: bold; }
+input[type="checkbox"] { margin-right: 5px; }
 </style>
 </head>
 <body>
 
-<h1>🏃 ระบบแข่งขันวิ่ง</h1>
+<h1>🏃 ระบบแข่งขันวิ่ง (Realtime)</h1>
 
 <button onclick="login()">🔐 แอดมิน</button>
 <button onclick="nextRound()">➡️ รอบถัดไป</button>
@@ -38,20 +38,17 @@ function login() {
   }
 }
 
-// ข้อมูลผู้เล่นเริ่มต้น
 let players = ["A","B","C","D","E","F","G","H","I"];
 let round = 1;
 let groups = [];
 let winners = [];
-let roundWinners = [];  // ผู้ชนะรอบปัจจุบัน
-let allWinners = [];    // ผู้ชนะสะสม
+let roundWinners = [];
+let allWinners = [];
 
-// ฟังก์ชันสุ่ม
 function shuffle(arr) {
   return arr.sort(() => Math.random() - 0.5);
 }
 
-// สร้างกลุ่มผู้เล่น
 function createGroups() {
   let temp = shuffle([...players]);
   groups = [];
@@ -60,7 +57,6 @@ function createGroups() {
   }
 }
 
-// แสดงผลกลุ่ม
 function render() {
   document.getElementById("round").innerText = "รอบที่ " + round;
   let app = document.getElementById("app");
@@ -69,23 +65,25 @@ function render() {
   groups.forEach((g, i) => {
     let div = document.createElement("div");
     div.className = "group";
+    div.dataset.index = i;
     div.innerHTML = "<b>กลุ่ม " + (i+1) + "</b><br>";
 
     g.forEach(p => {
-      div.innerHTML += `
-        <label>
-          <input type="checkbox" value="${p}">
-          ${p}
-        </label><br>
-      `;
-    });
+      let label = document.createElement("label");
+      let checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.value = p;
 
-    if (isAdmin) {
-      let btn = document.createElement("button");
-      btn.innerText = "ยืนยัน";
-      btn.onclick = () => pick(div);
-      div.appendChild(btn);
-    }
+      // ถ้าเป็นแอดมิน ติ๊กแล้วอัปเดตทันที
+      if (isAdmin) {
+        checkbox.addEventListener("change", () => handlePick(div));
+      }
+
+      label.appendChild(checkbox);
+      label.append(" " + p);
+      div.appendChild(label);
+      div.appendChild(document.createElement("br"));
+    });
 
     app.appendChild(div);
   });
@@ -94,41 +92,49 @@ function render() {
   renderAllWinners();
 }
 
-// เลือกผู้ชนะในกลุ่ม
-function pick(div) {
+// ฟังก์ชันอัปเดตผู้ชนะทันทีเมื่อติ๊ก
+function handlePick(div) {
   let checked = div.querySelectorAll("input:checked");
   let selected = Array.from(checked).map(x => x.value);
 
-  if (selected.length < 1 || selected.length > 2) {
-    alert("เลือก 1-2 คน");
+  if (selected.length > 2) {
+    alert("เลือกได้ไม่เกิน 2 คนต่อกลุ่ม");
+    // ยกเลิกการติ๊กล่าสุด
+    event.target.checked = false;
     return;
   }
 
-  // เพิ่มผู้ชนะรอบนี้และรวมสะสม
+  // รีเซ็ตผู้ชนะของกลุ่มนี้ก่อน
+  let groupPlayers = groups[div.dataset.index];
+  groupPlayers.forEach(p => {
+    roundWinners = roundWinners.filter(x => x !== p);
+    winners = winners.filter(x => x !== p);
+    allWinners = allWinners.filter(x => x !== p);
+  });
+
   selected.forEach(p => {
-    if (!winners.includes(p)) winners.push(p);
-    if (!roundWinners.includes(p)) roundWinners.push(p);
+    winners.push(p);
+    roundWinners.push(p);
     if (!allWinners.includes(p)) allWinners.push(p);
   });
 
-  div.style.background = "#c8f7c5";
+  // เปลี่ยนสีกลุ่มถ้ามีคนถูกเลือก
+  div.style.background = selected.length > 0 ? "#c8f7c5" : "#fff";
+
   renderWinners();
   renderAllWinners();
 }
 
-// แสดงผู้ชนะรอบปัจจุบัน
 function renderWinners() {
   let display = document.getElementById("winnersDisplay");
   display.innerHTML = roundWinners.join(", ") || "-";
 }
 
-// แสดงผู้ชนะสะสม
 function renderAllWinners() {
   let display = document.getElementById("allWinnersDisplay");
   display.innerHTML = allWinners.join(", ") || "-";
 }
 
-// ไปยังรอบถัดไป
 function nextRound() {
   if (winners.length === 0) {
     alert("ยังไม่มีผู้ชนะ");
@@ -137,8 +143,8 @@ function nextRound() {
 
   players = winners;
   winners = [];
+  roundWinners = [];
   round++;
-  roundWinners = [];  // ล้างผู้ชนะรอบใหม่
   createGroups();
   render();
 }
