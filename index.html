@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>ระบบแข่งขันวิ่ง</title>
+<style>
+body { font-family: Arial; margin: 20px; }
+.group { border: 1px solid #ccc; padding: 10px; margin: 10px 0; }
+button { margin-top: 5px; }
+</style>
+</head>
+<body>
+
+<h1>🏃 ระบบแข่งขันวิ่ง</h1>
+
+<button onclick="login()">🔐 แอดมิน</button>
+<button onclick="nextRound()">➡️ รอบถัดไป</button>
+
+<h2 id="round"></h2>
+<div id="app"></div>
+
+<script>
+let isAdmin = false;
+
+function login() {
+  let pass = prompt("ใส่รหัส:");
+  if (pass === "1234") {
+    isAdmin = true;
+    alert("เข้าสู่โหมดแอดมิน");
+    render();
+  }
+}
+
+let players = ["A","B","C","D","E","F","G","H","I"];
+let round = 1;
+let groups = [];
+let winners = [];
+
+function shuffle(arr) {
+  return arr.sort(() => Math.random() - 0.5);
+}
+
+function createGroups() {
+  let temp = shuffle([...players]);
+  groups = [];
+  for (let i = 0; i < temp.length; i += 3) {
+    groups.push(temp.slice(i, i+3));
+  }
+}
+
+function render() {
+  document.getElementById("round").innerText = "รอบที่ " + round;
+  let app = document.getElementById("app");
+  app.innerHTML = "";
+
+  groups.forEach((g, i) => {
+    let div = document.createElement("div");
+    div.className = "group";
+    div.innerHTML = "<b>กลุ่ม " + (i+1) + "</b><br>";
+
+    g.forEach(p => {
+      div.innerHTML += `
+        <label>
+          <input type="checkbox" value="${p}">
+          ${p}
+        </label><br>
+      `;
+    });
+
+    if (isAdmin) {
+      let btn = document.createElement("button");
+      btn.innerText = "ยืนยัน";
+      btn.onclick = () => pick(div);
+      div.appendChild(btn);
+    }
+
+    app.appendChild(div);
+  });
+}
+
+function pick(div) {
+  let checked = div.querySelectorAll("input:checked");
+  let selected = Array.from(checked).map(x => x.value);
+
+  if (selected.length < 1 || selected.length > 2) {
+    alert("เลือก 1-2 คน");
+    return;
+  }
+
+  winners.push(...selected);
+  div.style.background = "#c8f7c5";
+}
+
+function nextRound() {
+  if (winners.length === 0) {
+    alert("ยังไม่มีผู้ชนะ");
+    return;
+  }
+
+  players = winners;
+  winners = [];
+  round++;
+
+  createGroups();
+  render();
+}
+
+createGroups();
+render();
+</script>
+
+</body>
+</html>
