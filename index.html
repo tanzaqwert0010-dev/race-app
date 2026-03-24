@@ -7,6 +7,7 @@
 body { font-family: Arial; margin: 20px; }
 .group { border: 1px solid #ccc; padding: 10px; margin: 10px 0; }
 button { margin-top: 5px; }
+#winnersDisplay, #allWinnersDisplay { margin: 5px 0 15px 0; font-weight: bold; }
 </style>
 </head>
 <body>
@@ -18,6 +19,12 @@ button { margin-top: 5px; }
 
 <h2 id="round"></h2>
 <div id="app"></div>
+
+<h3>🏆 ผู้ชนะรอบนี้:</h3>
+<div id="winnersDisplay">-</div>
+
+<h3>🏅 ผู้ชนะสะสม:</h3>
+<div id="allWinnersDisplay">-</div>
 
 <script>
 let isAdmin = false;
@@ -31,15 +38,20 @@ function login() {
   }
 }
 
+// ข้อมูลผู้เล่นเริ่มต้น
 let players = ["A","B","C","D","E","F","G","H","I"];
 let round = 1;
 let groups = [];
 let winners = [];
+let roundWinners = [];  // ผู้ชนะรอบปัจจุบัน
+let allWinners = [];    // ผู้ชนะสะสม
 
+// ฟังก์ชันสุ่ม
 function shuffle(arr) {
   return arr.sort(() => Math.random() - 0.5);
 }
 
+// สร้างกลุ่มผู้เล่น
 function createGroups() {
   let temp = shuffle([...players]);
   groups = [];
@@ -48,6 +60,7 @@ function createGroups() {
   }
 }
 
+// แสดงผลกลุ่ม
 function render() {
   document.getElementById("round").innerText = "รอบที่ " + round;
   let app = document.getElementById("app");
@@ -76,8 +89,12 @@ function render() {
 
     app.appendChild(div);
   });
+
+  renderWinners();
+  renderAllWinners();
 }
 
+// เลือกผู้ชนะในกลุ่ม
 function pick(div) {
   let checked = div.querySelectorAll("input:checked");
   let selected = Array.from(checked).map(x => x.value);
@@ -87,10 +104,31 @@ function pick(div) {
     return;
   }
 
-  winners.push(...selected);
+  // เพิ่มผู้ชนะรอบนี้และรวมสะสม
+  selected.forEach(p => {
+    if (!winners.includes(p)) winners.push(p);
+    if (!roundWinners.includes(p)) roundWinners.push(p);
+    if (!allWinners.includes(p)) allWinners.push(p);
+  });
+
   div.style.background = "#c8f7c5";
+  renderWinners();
+  renderAllWinners();
 }
 
+// แสดงผู้ชนะรอบปัจจุบัน
+function renderWinners() {
+  let display = document.getElementById("winnersDisplay");
+  display.innerHTML = roundWinners.join(", ") || "-";
+}
+
+// แสดงผู้ชนะสะสม
+function renderAllWinners() {
+  let display = document.getElementById("allWinnersDisplay");
+  display.innerHTML = allWinners.join(", ") || "-";
+}
+
+// ไปยังรอบถัดไป
 function nextRound() {
   if (winners.length === 0) {
     alert("ยังไม่มีผู้ชนะ");
@@ -100,11 +138,12 @@ function nextRound() {
   players = winners;
   winners = [];
   round++;
-
+  roundWinners = [];  // ล้างผู้ชนะรอบใหม่
   createGroups();
   render();
 }
 
+// เริ่มระบบ
 createGroups();
 render();
 </script>
